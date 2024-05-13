@@ -20,6 +20,7 @@ const selectCommitCherryPickToTargetBranch = async () => {
         .prompt([{
             type: 'checkbox',
             name: 'commits',
+            pageSize:10,
             message: `请选择需要cherry-pick的commit记录`,
             choices: commits?.map(commit => ({ value: commit, name: commit.title, })),
         }, {
