@@ -1,0 +1,70 @@
+#!/usr/bin/env node
+const inquirer = require('inquirer')
+const chalk = require('chalk')
+const fs = require('fs');
+const path = require('path');
+const getConfig = require('../utils/getConfig');
+const clearFolder = require('../utils/clearFolder');
+const home = path.join((process.env.HOME || process.env.USERPROFILE),'.gt');
+const exec = () => {
+    let question = [
+        {
+            name: "gitUser-url",
+            type: 'input',
+            message: "请输入git地址(类似https://git.example.com)",
+            validate(val) {
+                if (val === '') return '请输入git地址'
+                return true
+            }
+        },
+        {
+            name: "gitUser-privateToken",
+            type: 'input',
+            message: "请输入git用户秘钥(privateToken)",
+            validate(val) {
+                if (val === '') return '请输入privateToken'
+                return true
+            }
+        },
+    ]
+    inquirer
+        .prompt(question).then(answers => {
+            let baseConfig = { ...answers };
+            const oldConfig =  getConfig();
+            // 默认项
+            const config = {
+                ...oldConfig,
+                baseConfig,
+            }
+            // 清空文件夹
+            clearFolder(home);
+            fs.writeFile(path.join(home, './config.json'), JSON.stringify(config), 'utf-8', err => {
+                if (err) console.log(err)
+                console.log('\n')
+                console.log(chalk.green('初始化成功! 请去到指定项目根目录下运行 gt-regist 进行项目注册 \n'))
+                console.log('\n')
+            })
+        })
+
+}
+if (fs.existsSync(home)) {
+    inquirer.prompt([
+        {
+            type: 'confirm',
+            name: 'continue',
+            message: '检测到已经对gt进行配置，此举将会更新配置文件，您确定要继续吗？',
+        },
+    ]).then((answers) => {
+        if (answers.continue) {
+            exec()
+        } else {
+            console.log('终止执行');
+            return;
+        }
+    });
+} else {
+    exec()
+}
+
+
+

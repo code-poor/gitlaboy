@@ -1,0 +1,44 @@
+#!/usr/bin/env node
+const checkRoot = require('../utils/checkRoot');
+if (!checkRoot()) { return }
+const chalk = require('chalk');
+const inquirer = require('inquirer');
+const { getMergeRequests, mergeMr } = require('../utils');
+const review = async () => {
+    const mrs = await getMergeRequests({ assigneeName: 'zhanghelin' });
+    console.log(chalk.green(`正在查询审核人的待审核mr: `));
+    if(!mrs?.length) {
+        return console.log(chalk.red('暂无mr审核'))
+    }
+    const statusMap = {
+        can_be_merged: '允许合并✅',
+        unchecked: '还未检查⏳请稍后再试',
+        checking: '检查中⏳请稍后再试' ,
+        cannot_be_merged:'冲突异常❌',
+        cannot_be_merged_recheck: '重复检查失败❌'
+    }
+    const res = await inquirer
+        .prompt([{
+            type: 'checkbox',
+            name: 'mrs',
+            message: `多选审核通过`,
+            choices: mrs.map((mr) => ({ value: mr, name: `${statusMap[mr.merge_status]} [${mr.iid}] ${mr.title} | ${mr.source_branch} => ${mr.target_branch} 👨‍💻‍${mr.author.name}` }))
+        }
+        ])
+    const selectedMrs = res.mrs;
+    for (let mr of selectedMrs) {
+        if(mr.merge_status !== 'can_be_merged') {
+            console.log(chalk.red(`[${mr.iid}]合并失败！ 当前状态为: ${statusMap[mr.merge_status]}`));
+            continue
+        }
+        console.log(chalk.yellow(`开始合并 [${mr.iid}]...`));
+        const mrRes = await mergeMr({ projectId: mr.project_id, mergerequestIId: mr.iid })
+        // console.log(mrRes);
+        if(mrRes.state === 'merged') {
+            console.log(chalk.green(`合并 [${mr.iid}] ${mr.title} 成功！`));
+        }else{
+            console.log(chalk.red(`未能正常合并 [${mr.iid}] ${mr.title} ${mr.web_url}`));
+        }
+    }
+}
+review()

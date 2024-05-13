@@ -1,0 +1,31 @@
+{
+  "name": "gitlaboy",
+  "version": "1.0",
+  "description": "适配GitLab的cli客户端，可以提供创建mr,创建cherry-pick等操作。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {},
+  "homepage": "",
+  "bin": {
+    "gt-cb": "bin/gt-cb",
+    "gt-cp": "bin/gt-cp",
+    "gt-mr": "bin/gt-mr",
+    "gt-rv": "bin/gt-review",
+    "gt-init": "bin/gt-init",
+    "gt-regist": "bin/gt-regist",
+    "gt-list": "bin/gt-list",
+    "gt-remove": "bin/gt-remove"
+  },
+  "dependencies": {
+    "@gitbeaker/rest": "^40.0.3",
+    "axios": "^1.6.2",
+    "chalk": "^2.4.2",
+    "commander": "^2.19.0",
+    "download-git-repo": "^1.1.0",
+    "inquirer": "^6.2.2"
+  },
+  "author": "zhl",
+  "license": "ISC"
+}

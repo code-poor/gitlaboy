@@ -1,0 +1,70 @@
+#!/usr/bin/env node
+const checkRoot = require('../utils/checkRoot');
+if (!checkRoot()) { return }
+const {
+    execSync
+} = require('child_process');
+const chalk = require('chalk');
+const inquirer = require('inquirer');
+const { createMR, getCurProjectId } = require('../utils');
+const title = execSync('git log -1 --pretty=format:"%s"')?.toString();
+inquirer
+    .prompt([{
+        type: 'list',
+        name: 'baseBranch',
+        message: `选择合并到哪个分支`,
+        choices: ['develop', 'daily', 'release', new inquirer.Separator(), '其他分支']
+    },
+    {
+        type: 'input',
+        name: 'customBranch',
+        message: '指定分支名:',
+        when: (answers) => answers.baseBranch === '其他分支',
+        validate: (input) => input !== '',
+    },
+    {
+        type: 'input',
+        name: 'assignee',
+        message: '输入审核人用户名',
+        required: true,
+        validate: function (value) {
+            if (value.length) {
+                return true;
+            } else {
+                return '审核人不能为空,请重新输入。';
+            }
+        }
+    },
+    {
+        type: 'input',
+        name: 'title',
+        message: '这次合并的标题',
+        default: title,
+        validate: function (value) {
+            if (value.length) {
+                return true;
+            } else {
+                return '合并标题不能为空,请重新输入。';
+            }
+        }
+    }
+    ]).then(async (ans) => {
+        let { baseBranch, assignee, title, customBranch} = ans;
+        if(baseBranch === '其他分支') baseBranch = customBranch;
+        const curBrachName = execSync('git symbolic-ref --short HEAD').toString().trim('');
+        // 获得当前目录下项目的项目id
+        const projectId = await getCurProjectId();
+        console.log("获取项目id成功", projectId)
+        await createMR({
+            projectId,
+            assigneeName: assignee,
+            sourceBranch: curBrachName,
+            targetBranch: baseBranch,
+            title,
+            removeSourceBranch: false
+        });
+        console.log(chalk.green('创建MR成功！'));
+    }).catch(e => {
+        console.log(e)
+    })
+

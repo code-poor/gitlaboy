@@ -1,0 +1,35 @@
+#!/usr/bin/env node
+const { default: chalk } = require('chalk');
+const program = require('commander');
+const fs = require('fs');
+const path = require('path');
+const checkRoot = require('../utils/checkRoot');
+const getConfig = require('../utils/getConfig');
+const root = checkRoot();
+if (!root) { return }
+
+const config = getConfig();
+const projectConfig = config?.projectConfig || {};
+program
+    .usage('<project_name>')
+    .usage('<project_name>')
+    .arguments('<project_name>')
+    .action(project_name => {
+        if (!projectConfig[project_name]) {
+            return console.log(chalk.red("该项目未注册！"))
+        }
+
+        const configFilePath = path.join(root, 'config.json');
+
+        delete projectConfig[project_name];
+        try {
+            fs.writeFileSync(configFilePath, JSON.stringify({
+                ...config,
+                projectConfig
+            }));
+            console.log(chalk.green("取消注册成功!"))
+        } catch (e) {
+            console.error(chalk.red(`配置文件写入失败: ${confPath} \n ${err}`));
+        }
+    })
+program.parse(process.argv);

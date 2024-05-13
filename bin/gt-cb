@@ -1,0 +1,67 @@
+#!/usr/bin/env node
+const inquirer = require('inquirer');
+const chalk = require('chalk');
+const checkRoot = require('../utils/checkRoot');
+const checkHomePath = require('../utils/checkHomePath');
+const { createNewBranch } = require('../utils/createNewBranch');
+if (!checkHomePath()) {
+    return;
+}
+
+const root = checkRoot();
+if (!root) {
+    return;
+}
+
+const defaultBranches = ['develop', 'daily', 'release'];
+
+inquirer
+    .prompt([{
+            type: 'list',
+            name: 'baseBranch',
+            message: '选择一个基础分支，将基于这个分支新建操作分支',
+            choices: [...defaultBranches, new inquirer.Separator(), '其他分支'],
+        },
+        {
+            type: 'input',
+            name: 'customBranch',
+            message: '输入分支名',
+            when: (answers) => answers.baseBranch === '其他分支',
+            validate: (input) => input !== '',
+        },
+        {
+            type: 'input',
+            name: 'branchTag',
+            default: getCurrentTime(),
+            message: '输入新分支的标识',
+            validate: (input) => input !== '',
+        },
+    ])
+    .then((answers) => {
+        const {
+            baseBranch,
+            customBranch,
+            branchTag
+        } = answers;
+        const selectedBranch = baseBranch === '其他分支' ? customBranch : baseBranch;
+        // 创建新分支
+        const currentDate = getCurrentDate();
+        const newBranchName = `${selectedBranch}-${currentDate}-${branchTag}`;
+        createNewBranch(selectedBranch, newBranchName);
+        console.log(chalk.green(`\n创建分支${newBranchName}成功!已为您自动切换！\n`))
+    });
+// 获取当前日期
+function getCurrentDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}${month}${day}`;
+}
+function getCurrentTime() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    return `${hours}${minutes}${seconds}`;
+}

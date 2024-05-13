@@ -1,0 +1,77 @@
+#!/usr/bin/env node
+const checkRoot = require('../utils/checkRoot');
+if (!checkRoot()) { return }
+const {
+    execSync
+} = require('child_process');
+const chalk = require('chalk');
+const inquirer = require('inquirer');
+const { getCommits, createMR, getCurProjectId, createCherryPickBranch, cherryPickCommits, gitlabInstance } = require('../utils/index');
+
+const selectCommitCherryPickToTargetBranch = async () => {
+    const branchName = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
+    console.log(chalk.green(`将从当前分支 ${branchName} 进行挑选commit。`));
+    const projectId = await getCurProjectId();
+    // 先获得当前提交的前10条commit，存进一个列表
+    const commits = await getCommits({ projectId, branchName, count: 10 });
+    // 使用提示交互 让用户选择
+    // 让用户选择要cp的分支
+    inquirer
+        .prompt([{
+            type: 'checkbox',
+            name: 'commits',
+            message: `请选择需要cherry-pick的commit记录`,
+            choices: commits?.map(commit => ({ value: commit, name: commit.title, })),
+        }, {
+            type: 'list',
+            name: 'cpBranch',
+            message: `选择cp到哪个分支`,
+            choices: ['develop', 'daily', 'release', new inquirer.Separator(), '其他分支'],
+        },
+        {
+            type: 'input',
+            name: 'customBranch',
+            message: '指定分支名:',
+            when: (answers) => answers.cpBranch === '其他分支',
+            validate: (input) => input !== '',
+        },
+        {
+            type: 'input',
+            name: 'assignee',
+            message: '指定审核人:',
+            validate: (input) => input !== '',
+        },
+        ]).then(async (ans) => {
+            // 基于用户选择的cp分支创建一个临时分支
+            let { commits, cpBranch, customBranch,assignee } = ans;
+            if (cpBranch === '其他分支') cpBranch = customBranch;
+            const reversedCommits = commits.reverse();
+            // console.log(commits);
+            let tempBranch;
+            try {
+
+                tempBranch = await createCherryPickBranch({ projectId, baseBranchName: cpBranch });
+                // 把用户选择的commit们合并到临时分支
+                await cherryPickCommits({ projectId, commits: reversedCommits, targetBranch: tempBranch })
+                // 如果成功 则将临时分支 创建合并到用户的cp分支的mr
+                const res = await createMR({
+                    projectId,
+                    assigneeName: assignee,
+                    sourceBranch: tempBranch,
+                    targetBranch: cpBranch,
+                    title: commits[0]?.title,
+                    removeSourceBranch: true
+                })
+            } catch (e) {
+                // console.log(e)
+                // console.log(JSON.stringify(e));
+                console.log(chalk.red(e?.cause?.description ?? e?.message));
+                // console.log(JSON.stringify(e));
+                // 如果失败 则删除临时分支 让用户从头选择
+                await gitlabInstance.Branches.remove(projectId, tempBranch);
+            }
+        })
+
+}
+
+selectCommitCherryPickToTargetBranch();

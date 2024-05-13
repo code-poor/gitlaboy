@@ -1,0 +1,90 @@
+#!/usr/bin/env node
+
+/**
+ * 注册一个项目
+ */
+const inquirer = require('inquirer')
+const chalk = require('chalk')
+const fs = require('fs');
+const path = require('path');
+const home = path.join((process.env.HOME || process.env.USERPROFILE), '.gt');
+const getConfig = require('../utils/getConfig');
+const checkRoot = require('../utils/checkRoot');
+const { getCurProjectName, gitlabInstance } = require('../utils');
+if (!checkRoot()) {
+  return;
+}
+
+
+const generateConfig = (projectName, answers) => {
+  const config = getConfig();
+  // 合并配置
+  const projectConfig = {
+    ...config.projectConfig,
+    [projectName]: answers
+  }
+  const configFilePath = path.join(home, 'config.json');
+
+  try {
+    fs.writeFileSync(configFilePath, JSON.stringify({
+      ...config,
+      projectConfig
+    }));
+
+  } catch (e) {
+    console.error(chalk.red(`配置文件写入失败: ${confPath} \n ${err}`));
+  }
+}
+
+getCurProjectName().then(async (projectName) => {
+  if (!projectName) return console.log(chalk.red(`在该目录下未找到git项目，请重新克隆后再试！`));
+
+  console.log(chalk.green(`检测到当前项目名称为 ${projectName}`));
+
+  const projects = await gitlabInstance.Projects.all({
+    search: projectName,
+    simple: true,
+    searchNamespaces: true
+  });
+  // 没有查询到项目
+  if (projects.length === 0) {
+    console.log(chalk.red(`未查询到当前项目！请检查 \n 1. 是否有该项目权限 \n 2. 尝试重新克隆 \n 3. 是否属于该gitLab的项目`));
+    return;
+  }
+  // 查询到项目了 精确匹配了
+  if (projects.length === 1) {
+    const project = projects.pop();
+    const projectId = project.id;
+    generateConfig(projectName, {
+      ['project-name']: projectName,
+      ['gitUser-projectId']: projectId,
+      localRepository: process.cwd(),
+    });
+    console.log(chalk.bold.green(`注册项目 ${projectName} 成功!`))
+    console.log(chalk.bold.green(`如果需要更改配置，可以修改${path.join(home, 'config.json')}`))
+    return;
+  }
+
+  // 查询到多个 让用户自己选择
+  const ans = await inquirer.prompt([{
+    type: 'list',
+    name: 'project',
+    message: '查询到多个项目，请选择与当前本地项目匹配的项目',
+    choices: projects.map(p => ({ value: p, name: p.path_with_namespace })),
+  }])
+  const targetProjectId = ans.project.id;
+  const _projectName = ans.project.path_with_namespace;
+  generateConfig(_projectName, {
+    ['project-name']: _projectName,
+    ['gitUser-projectId']: targetProjectId,
+    localRepository: process.cwd(),
+  });
+  console.log(chalk.bold.green(`注册项目 ${_projectName} 成功!`))
+  console.log(chalk.bold.green(`如果需要更改配置，可以修改${path.join(home, 'config.json')}`))
+
+}).catch(e => {
+  console.log(e);
+})
+
+
+

@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+const { default: chalk } = require('chalk');
+// const fs = require('fs');
+// const path = require('path');
+const checkRoot = require('../utils/checkRoot');
+const getConfig = require('../utils/getConfig');
+if (!checkRoot()) { return }
+const config = getConfig();
+const projectConfig = config?.projectConfig || {};
+
+console.log("\n当前注册的项目如下：\n")
+Object.keys(projectConfig).forEach(key => {
+    console.log(chalk.green(key) + `(${projectConfig[key]['gitUser-projectId']})` + ':', chalk.gray(projectConfig[key]['localRepository']))
+})
+console.log(`\n如何解除注册项目: gt-remove <project_name> \n`)
