@@ -13,7 +13,7 @@ const config = getConfig();
 const defaultBranchConfig = config.defaultBranchConfig ?? [];
 const defaultAssigneeConfig = config.defaultAssigneeConfig ?? [];
 if (!defaultAssigneeConfig.length) {
-    console.log('当前未配置默认审核人,建议使用 gt-config 配置默认审核人提高效率！');
+    console.log(`当前未配置默认审核人,建议使用 ${chalk.green('gt-config')} 配置默认审核人提高效率！`);
 }
 inquirer
     .prompt([{

@@ -1,8 +1,11 @@
 const chalk = require('chalk');
 const { HOME } = require('../config');
 const getConfig = require('./getConfig');
+const checkHomePath = require('./checkHomePath');
 // 检查是否初始化
 function checkRoot() {
+
+    if(!checkHomePath()) return;
     const config = getConfig();
     if (config) {
         if (!config?.baseConfig?.['gitUser-privateToken']) {
