@@ -16,7 +16,7 @@
 ### 安装命令
 环境安装完成后，执行下面命令进行全局安装：
 ```shell
-ynpm install -g gitlaboy
+npm install -g gitlaboy
 ```
 
 
