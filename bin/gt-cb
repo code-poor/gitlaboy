@@ -4,6 +4,7 @@ const chalk = require('chalk');
 const checkRoot = require('../utils/checkRoot');
 const checkHomePath = require('../utils/checkHomePath');
 const { createNewBranch } = require('../utils/createNewBranch');
+const getConfig = require('../utils/getConfig');
 if (!checkHomePath()) {
     return;
 }
@@ -44,9 +45,10 @@ inquirer
             branchTag
         } = answers;
         const selectedBranch = baseBranch === '其他分支' ? customBranch : baseBranch;
+        const userName = getConfig()?.baseConfig?.['gitUser-name'];
         // 创建新分支
         const currentDate = getCurrentDate();
-        const newBranchName = `${selectedBranch}-${currentDate}-${branchTag}`;
+        const newBranchName = `${selectedBranch}-${userName}-${currentDate}-${branchTag}`;
         createNewBranch(selectedBranch, newBranchName);
         console.log(chalk.green(`\n创建分支${newBranchName}成功!已为您自动切换！\n`))
     });

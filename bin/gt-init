@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 const inquirer = require('inquirer')
-const chalk = require('chalk')
 const fs = require('fs');
 const path = require('path');
 const getConfig = require('../utils/getConfig');
 const clearFolder = require('../utils/clearFolder');
-const home = path.join((process.env.HOME || process.env.USERPROFILE),'.gt');
+const writeConfig = require('../utils/writeConfig');
+const home = path.join((process.env.HOME || process.env.USERPROFILE), '.gt');
 const exec = () => {
     let question = [
         {
@@ -14,6 +14,15 @@ const exec = () => {
             message: "请输入git地址(类似https://git.example.com)",
             validate(val) {
                 if (val === '') return '请输入git地址'
+                return true
+            }
+        },
+        {
+            name: "gitUser-name",
+            type: 'input',
+            message: "请输入你的用户名",
+            validate(val) {
+                if (val === '') return '请输入你的用户名'
                 return true
             }
         },
@@ -30,20 +39,23 @@ const exec = () => {
     inquirer
         .prompt(question).then(answers => {
             let baseConfig = { ...answers };
-            const oldConfig =  getConfig();
+            const oldConfig = getConfig();
             // 默认项
             const config = {
                 ...oldConfig,
                 baseConfig,
+                userConfig: {
+                    [answers['gitUser-name']]: answers['gitUser-privateToken']
+                },
+                defaultBranchConfig: [
+                    'develop', 'daily', 'release'
+                ],
+                defaultAssigneeConfig: [],
+                cpListCount: 10
             }
             // 清空文件夹
             clearFolder(home);
-            fs.writeFile(path.join(home, './config.json'), JSON.stringify(config), 'utf-8', err => {
-                if (err) console.log(err)
-                console.log('\n')
-                console.log(chalk.green('初始化成功! 请去到指定项目根目录下运行 gt-regist 进行项目注册 \n'))
-                console.log('\n')
-            })
+            writeConfig(config, '初始化成功! 请去到指定项目根目录下运行 gt-regist 进行项目注册 \n')
         })
 
 }

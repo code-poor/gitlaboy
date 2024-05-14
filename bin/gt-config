@@ -1,0 +1,130 @@
+#!/usr/bin/env node
+const inquirer = require('inquirer');
+const path = require('path');
+const checkRoot = require('../utils/checkRoot');
+const checkHomePath = require('../utils/checkHomePath');
+const getConfig = require('../utils/getConfig');
+const writeConfig = require('../utils/writeConfig');
+const { HOME } = require('../config');
+const { default: chalk } = require('chalk');
+if (!checkHomePath()) {
+    return;
+}
+
+const root = checkRoot();
+if (!root) {
+    return;
+}
+const config = getConfig();
+const menu = {
+    createUser: async () => {
+        const ans = await inquirer.prompt([{
+            type: 'input',
+            name: 'name',
+            message: '输入用户名',
+            validate(val) {
+                if (val === '') return '输入用户名'
+                return true
+            }
+        }, {
+            type: 'input',
+            name: 'token',
+            message: '输入git用户秘钥(privateToken)',
+            validate(val) {
+                if (val === '') return '输入git用户秘钥(privateToken)'
+                return true
+            }
+        }]);
+        const { name, token } = ans;
+        const userConfig = config.userConfig || {};
+        userConfig[name] = token;
+        config.userConfig = userConfig;
+        writeConfig(config, '操作成功！');
+    },
+    transUser: async () => {
+        const userConfig = config.userConfig || {}
+        console.log(chalk.yellow(`当前用户为: ${config.baseConfig['gitUser-name']}`));
+        const userlist = Object.keys(userConfig).map(username => ({ name: username, value: { name: username, token: userConfig[username] } }));
+        const ans = await inquirer.prompt([{
+            type: 'list',
+            name: 'user',
+            message: '选择切换到哪个用户',
+            choices: userlist,
+            validate(val) {
+                if (val === '') return '选择切换的用户'
+                return true
+            }
+        }]);
+        const { user } = ans;
+        config.baseConfig['gitUser-privateToken'] = user.token;
+        config.baseConfig['gitUser-name'] = user.name;
+        writeConfig(config, '切换成功');
+    },
+    createsAssigee:async () => {
+        const currAssignees = config?.defaultAssigneeConfig || [];
+        console.log(chalk.yellow(`当前合并时默认选择审核人为${currAssignees?.join(',')}`));
+        const ans = await inquirer.prompt([{
+            type: 'input',
+            name: 'assignName',
+            message: '输入审核人用户名(如lixiaoxiao)',
+            validate(val) {
+                if (!val) return '输入审核人用户名'
+                if (currAssignees.includes(val)) return '审核人已经存在，请重新输入！'
+                return true
+            }
+        }]);
+        const { assignName } = ans;
+        currAssignees.push(assignName);
+        config.defaultAssigneeConfig = currAssignees;
+        writeConfig(config, '新增成功');
+    },
+    createBranchName: async () => {
+        const currBranches = config?.defaultBranchConfig || [];
+        console.log(chalk.yellow(`当前合并时默认选择分支为${currBranches?.join(',')}`));
+        const ans = await inquirer.prompt([{
+            type: 'input',
+            name: 'branchName',
+            message: '输入分支名',
+            validate(val) {
+                if (!val) return '请输入分支名'
+                if (currBranches.includes(val)) return '分支已经存在，请重新输入！'
+                return true
+            }
+        }]);
+        const { branchName } = ans;
+        currBranches.push(branchName);
+        config.defaultBranchConfig = currBranches;
+        writeConfig(config, '新增成功');
+    },
+    getConfigPath: () => {
+        console.log(path.join(HOME, 'config.json'));
+    },
+    catConfigPath: () => {
+        console.log(config);
+    },
+    catCurrUser: () => {
+        console.log(config.baseConfig);
+    }
+}
+inquirer
+    .prompt([{
+        type: 'list',
+        name: 'menuItem',
+        message: '选择配置项',
+        choices: [
+            { name: '新增/修改 用户配置', value: 'createUser' },
+            { name: '查看当前用户配置', value: 'catCurrUser' },
+            { name: '切换GitLab用户', value: 'transUser' },
+            { name: '新增常用代码审核人', value: 'createsAssigee' },
+            { name: '新增常用合并分支', value: 'createBranchName' },
+            { name: '获取配置文件地址', value: 'getConfigPath' },
+            { name: '查看配置文件', value: 'catConfigPath' },
+        ],
+    }
+    ])
+    .then((answers) => {
+        const {
+            menuItem
+        } = answers;
+        return menu[menuItem]?.();
+    });

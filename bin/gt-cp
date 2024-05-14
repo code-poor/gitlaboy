@@ -7,27 +7,33 @@ const {
 const chalk = require('chalk');
 const inquirer = require('inquirer');
 const { getCommits, createMR, getCurProjectId, createCherryPickBranch, cherryPickCommits, gitlabInstance } = require('../utils/index');
-
+const getConfig = require('../utils/getConfig');
+const config = getConfig();
+const defaultBranchConfig = config.defaultBranchConfig ?? [];
+const defaultAssigneeConfig = config.defaultAssigneeConfig ?? [];
+if (!defaultAssigneeConfig.length) {
+    console.log('当前未配置默认审核人,建议使用 gt-config 配置默认审核人提高效率！');
+}
 const selectCommitCherryPickToTargetBranch = async () => {
     const branchName = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
     console.log(chalk.green(`将从当前分支 ${branchName} 进行挑选commit。`));
     const projectId = await getCurProjectId();
     // 先获得当前提交的前10条commit，存进一个列表
-    const commits = await getCommits({ projectId, branchName, count: 10 });
+    const commits = await getCommits({ projectId, branchName, count: config?.cpListCount || 10 });
     // 使用提示交互 让用户选择
     // 让用户选择要cp的分支
     inquirer
         .prompt([{
             type: 'checkbox',
             name: 'commits',
-            pageSize:10,
+            pageSize: 10,
             message: `请选择需要cherry-pick的commit记录`,
             choices: commits?.map(commit => ({ value: commit, name: commit.title, })),
         }, {
             type: 'list',
             name: 'cpBranch',
             message: `选择cp到哪个分支`,
-            choices: ['develop', 'daily', 'release', new inquirer.Separator(), '其他分支'],
+            choices: [...defaultBranchConfig, new inquirer.Separator(), '其他分支'],
         },
         {
             type: 'input',
@@ -37,14 +43,51 @@ const selectCommitCherryPickToTargetBranch = async () => {
             validate: (input) => input !== '',
         },
         {
+            type: 'list',
+            name: 'assignee',
+            message: '选择审核人',
+            required: true,
+            when: () => defaultAssigneeConfig.length > 0,
+            choices: [...defaultAssigneeConfig, new inquirer.Separator(), '其他审核人'],
+            validate: function (value) {
+                if (value.length) {
+                    return true;
+                } else {
+                    return '审核人不能为空,请重新选择。';
+                }
+            }
+        },
+        {
             type: 'input',
             name: 'assignee',
-            message: '指定审核人:',
-            validate: (input) => input !== '',
+            message: '输入审核人用户名',
+            required: true,
+            when: (ans) => ans.assignee === '其他审核人',
+            validate: function (value) {
+                if (value.length) {
+                    return true;
+                } else {
+                    return '审核人不能为空,请重新输入。';
+                }
+            }
+        },
+        {
+            type: 'input',
+            name: 'assignee',
+            message: '输入审核人用户名',
+            required: true,
+            when: () => defaultAssigneeConfig.length === 0,
+            validate: function (value) {
+                if (value.length) {
+                    return true;
+                } else {
+                    return '审核人不能为空,请重新输入。';
+                }
+            }
         },
         ]).then(async (ans) => {
             // 基于用户选择的cp分支创建一个临时分支
-            let { commits, cpBranch, customBranch,assignee } = ans;
+            let { commits, cpBranch, customBranch, assignee } = ans;
             if (cpBranch === '其他分支') cpBranch = customBranch;
             const reversedCommits = commits.reverse();
             // console.log(commits);
