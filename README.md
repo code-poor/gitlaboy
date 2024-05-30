@@ -11,12 +11,12 @@
 ## 安装说明
 
 ### 前置环境
-需要安装[node](https://nodejs.org/en)(版本大于18)和ynpm
+需要安装[node](https://nodejs.org/en)(版本大于18)和npm
 
 ### 安装命令
 环境安装完成后，执行下面命令进行全局安装：
 ```shell
-npm install -g gitlaboy
+sudo npm install -g gitlaboy
 ```
 
 
@@ -74,14 +74,13 @@ gt-cp
 
 ### 老用户升级
 ```shell
-sudo ynpm update -g gt
+sudo npm update -g gt
 ```
 
 ## Q&A
 
 * gt 找不到命令：检查一下是否是全局安装。
 * 命令提示没有权限 使用sudo(mac环境) 或者 管理员权限执行命令(windows) 
-* 使用ynpm安装时报错，可能是由于使用了pnpm导致的，使用`ynpm set usein=npm`设置为使用npm后重试
 * 使用命令时报错，更新Node版本到18以上
 > 有任何使用问题可以提issue哈
 
