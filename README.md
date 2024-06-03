@@ -74,7 +74,7 @@ gt-cp
 
 ### 老用户升级
 ```shell
-sudo npm update -g gt
+sudo npm update -g gitlaboy
 ```
 
 ## Q&A
