@@ -9,6 +9,7 @@
   "repository": {},
   "homepage": "https://github.com/Leochens/gitlaboy",
   "bin": {
+    "gt-code": "bin/gt-code",
     "gt-cb": "bin/gt-cb",
     "gt-cp": "bin/gt-cp",
     "gt-mr": "bin/gt-mr",
