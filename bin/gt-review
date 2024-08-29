@@ -2,10 +2,14 @@
 const checkRoot = require('../utils/checkRoot');
 if (!checkRoot()) { return }
 const chalk = require('chalk');
+
 const inquirer = require('inquirer');
 const { getMergeRequests, mergeMr } = require('../utils');
+const getConfig = require('../utils/getConfig');
+const config = getConfig();
 const review = async () => {
     const mrs = await getMergeRequests({ assigneeName: 'zhanghelin' });
+    console.log(chalk.yellow(`当前用户为: ${config.baseConfig['gitUser-name']}`));
     console.log(chalk.green(`正在查询审核人的待审核mr: `));
     if(!mrs?.length) {
         return console.log(chalk.red('暂无mr审核'))

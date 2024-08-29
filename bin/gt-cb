@@ -8,12 +8,12 @@ const getConfig = require('../utils/getConfig');
 if (!checkHomePath()) {
     return;
 }
-
+const config = getConfig();
 const root = checkRoot();
 if (!root) {
     return;
 }
-
+console.log(chalk.yellow(`当前用户为: ${config.baseConfig['gitUser-name']}`));
 const defaultBranches = ['develop', 'daily', 'release'];
 
 inquirer
